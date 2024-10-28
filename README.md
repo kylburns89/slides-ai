@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SlidesAI - AI-Powered Presentation Generator
 
-## Getting Started
+Generate Google Slides presentations automatically from text or audio input using AI. This application allows users to either type their content or upload audio files to create professional presentations.
 
-First, run the development server:
+## Features
 
+- Text-to-presentation conversion
+- Audio-to-presentation conversion
+- Google Slides integration
+- Multiple presentation templates
+- Responsive design
+- Google authentication
+- Real-time progress updates
+- Audio file upload with drag-and-drop support
+
+## Prerequisites
+
+- Node.js 18+ and npm
+- Google Cloud Platform account
+- Google OAuth 2.0 credentials
+- Google Cloud Service Account with access to:
+  - Google Slides API
+  - Google Drive API
+  - Cloud Speech-to-Text API
+
+## Setup
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd slides-ai
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up Google Cloud Platform:
+   - Create a new project in Google Cloud Console
+   - Enable the following APIs:
+     - Google Slides API
+     - Google Drive API
+     - Cloud Speech-to-Text API
+   - Create OAuth 2.0 credentials
+   - Create a service account and download the credentials
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Configure environment variables:
+   - Copy `.env.example` to `.env.local`
+   - Fill in the required environment variables:
+     ```
+     GOOGLE_CLIENT_ID=your_oauth_client_id
+     GOOGLE_CLIENT_SECRET=your_oauth_client_secret
+     GOOGLE_CLIENT_EMAIL=your_service_account_email
+     GOOGLE_PRIVATE_KEY=your_service_account_private_key
+     NEXTAUTH_URL=http://localhost:3000
+     NEXTAUTH_SECRET=your_generated_secret
+     ```
 
-## Learn More
+5. Run the development server:
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Usage
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Sign in with your Google account
+2. Choose between text or audio input
+3. Enter your content or upload an audio file
+4. Select a presentation template
+5. Click "Generate Presentation"
+6. View your generated presentation in Google Slides
 
-## Deploy on Vercel
+## Technical Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Next.js 14
+- React 18
+- TypeScript
+- Tailwind CSS
+- NextAuth.js
+- Google Cloud APIs
+- React Dropzone
+- Lucide Icons
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project Structure
+
+```
+slides-ai/
+├── app/
+│   ├── api/
+│   │   ├── auth/
+│   │   ├── audio/
+│   │   └── presentations/
+│   ├── layout.tsx
+│   ├── page.tsx
+│   └── providers.tsx
+├── hooks/
+│   └── useFileUpload.ts
+├── types/
+│   └── index.ts
+├── .env.example
+└── README.md
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a new Pull Request
+
+## License
+
+MIT License - feel free to use this project for personal or commercial purposes.

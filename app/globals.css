@@ -5,17 +5,89 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #1f2937;
+  --accent: #3b82f6;
+  --accent-foreground: #ffffff;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #2563eb;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #1f2937;
+  --secondary-foreground: #f3f4f6;
+  --accent: #2563eb;
+  --accent-foreground: #ffffff;
+  --muted: #1f2937;
+  --muted-foreground: #9ca3af;
+  --card: #171717;
+  --card-foreground: #ededed;
+  --border: #374151;
+  --input: #374151;
+  --ring: #3b82f6;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light) {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --primary: #3b82f6;
+    --primary-foreground: #ffffff;
+    --secondary: #1f2937;
+    --secondary-foreground: #f3f4f6;
+    --accent: #2563eb;
+    --accent-foreground: #ffffff;
+    --muted: #1f2937;
+    --muted-foreground: #9ca3af;
+    --card: #171717;
+    --card-foreground: #ededed;
+    --border: #374151;
+    --input: #374151;
+    --ring: #3b82f6;
   }
 }
 
+* {
+  @apply border-border;
+}
+
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-background text-foreground;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Smooth transitions for theme changes */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* Improved focus styles */
+:focus-visible {
+  @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+}
+
+/* Better button hover states */
+button:not(:disabled):hover {
+  @apply opacity-90;
+}
+
+/* Disabled states */
+button:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* Input placeholder styles */
+::placeholder {
+  @apply text-muted-foreground;
 }
