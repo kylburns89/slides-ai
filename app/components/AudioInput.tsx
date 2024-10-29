@@ -1,9 +1,9 @@
 "use client";
 
 import { AlertCircle, Loader2, Mic } from "lucide-react";
-import { useFileUpload } from "@/hooks/useFileUpload";
-import { API_PROVIDERS, WHISPER_MODELS } from "@/app/constants";
-import { APIProvider } from "@/types";
+import { useFileUpload } from "../../hooks/useFileUpload";
+import { API_PROVIDERS, WHISPER_MODELS } from "../../app/constants";
+import { APIProvider } from "../../types";
 import { useState } from "react";
 
 interface AudioInputProps {
@@ -11,12 +11,17 @@ interface AudioInputProps {
   isGenerating: boolean;
   onGenerate: () => void;
   title: string;
-  handleFileUpload: (file: File, transcription: string) => Promise<void>;
+  handleFileUpload: (file: File) => Promise<void>;
+}
+
+interface ModelInfo {
+  name: string;
+  description: string;
 }
 
 export default function AudioInput({ content, isGenerating, onGenerate, title, handleFileUpload }: AudioInputProps) {
-  const [provider, setProvider] = useState<APIProvider>("groq");
-  const [model, setModel] = useState("whisper-large-v3-turbo");
+  const [provider, setProvider] = useState<APIProvider>("openai");
+  const [model, setModel] = useState("whisper-1");
 
   const { 
     getRootProps, 
@@ -30,30 +35,7 @@ export default function AudioInput({ content, isGenerating, onGenerate, title, h
   } = useFileUpload({
     maxSize: 25 * 1024 * 1024, // 25MB
     acceptedTypes: ['audio/mpeg', 'audio/wav', 'audio/m4a', 'audio/webm', 'video/mp4'],
-    onUpload: async (file: File) => {
-      const formData = new FormData();
-      formData.append("audio", file);
-      formData.append("config", JSON.stringify({
-        provider,
-        model,
-        temperature: 0
-      }));
-
-      // First get transcription from audio endpoint
-      const response = await fetch("/api/audio", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Failed to transcribe audio");
-      }
-
-      // Pass both file and transcription to parent handler
-      await handleFileUpload(file, data.transcription);
-    }
+    onUpload: handleFileUpload
   });
 
   const getUploadStatusText = () => {
@@ -83,8 +65,8 @@ export default function AudioInput({ content, isGenerating, onGenerate, title, h
           }}
           className="w-full px-3 py-2 bg-background border rounded-lg"
         >
-          <option value={API_PROVIDERS.GROQ}>Groq (Faster)</option>
           <option value={API_PROVIDERS.OPENAI}>OpenAI</option>
+          <option value={API_PROVIDERS.GROQ}>Groq (Faster)</option>
         </select>
       </div>
 
@@ -98,7 +80,7 @@ export default function AudioInput({ content, isGenerating, onGenerate, title, h
           >
             {Object.entries(models).map(([id, info]) => (
               <option key={id} value={id}>
-                {info.name} - {info.description}
+                {(info as ModelInfo).name} - {(info as ModelInfo).description}
               </option>
             ))}
           </select>

@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 interface GenerateRequest {
   content: string;
   type: "text" | "audio";
+  slideCount: number;
 }
 
 interface GenerateResponse {
@@ -12,7 +13,9 @@ interface GenerateResponse {
   error?: string;
 }
 
-const SYSTEM_PROMPT = `You are an expert at creating clear, engaging presentation content using HTML. Your task is to take the provided input and structure it into a well-organized HTML presentation for reveal.js. Each slide should be a complete HTML section with proper semantic markup.
+const getSystemPrompt = (slideCount: number) => `You are an expert at creating clear, engaging presentation content using HTML. Your task is to take the provided input and structure it into a well-organized HTML presentation for reveal.js. Each slide should be a complete HTML section with proper semantic markup.
+
+Important: Create exactly ${slideCount} slides, no more and no less.
 
 Format guidelines:
 - Use h1 or h2 for slide titles
@@ -20,6 +23,8 @@ Format guidelines:
 - Keep content concise and impactful
 - Use proper HTML structure for each slide
 - Separate slides with two newlines for parsing
+- Ensure exactly ${slideCount} slides are created
+- Don't include any details about the number of slides you created in your response
 
 Example slide format:
 <h1>Slide Title</h1>
@@ -42,16 +47,16 @@ export async function POST(req: NextRequest) {
     });
 
     const data: GenerateRequest = await req.json();
-    const { content, type } = data;
+    const { content, type, slideCount = 10 } = data;
 
     const userPrompt = type === "audio" 
-      ? "Convert this transcribed speech into HTML presentation content: " + content
-      : "Convert this text into HTML presentation content: " + content;
+      ? `Convert this transcribed speech into exactly ${slideCount} HTML presentation slides: ${content}`
+      : `Convert this text into exactly ${slideCount} HTML presentation slides: ${content}`;
 
     const message = await anthropic.messages.create({
       model: "claude-3-opus-20240229",
       max_tokens: 4096,
-      system: SYSTEM_PROMPT,
+      system: getSystemPrompt(slideCount),
       messages: [
         {
           role: "user",

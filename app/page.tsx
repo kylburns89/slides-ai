@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { Presentation, InputMode } from "@/types";
-import { TitleInput } from "@/app/components/TitleInput";
-import { SettingsBar } from "@/app/components/SettingsBar";
-import { InputModeToggle } from "@/app/components/InputModeToggle";
-import { TextInput } from "@/app/components/TextInput";
-import AudioInput from "@/app/components/AudioInput";
-import { ThemeSelection } from "@/app/components/ThemeSelection";
-import { PresentationHistory } from "@/app/components/PresentationHistory";
+import { Presentation, InputMode } from "../../types";
+import { TitleInput } from "./components/TitleInput";
+import { SettingsBar } from "./components/SettingsBar";
+import { InputModeToggle } from "./components/InputModeToggle";
+import { TextInput } from "./components/TextInput";
+import AudioInput from "./components/AudioInput";
+import { ThemeSelection } from "./components/ThemeSelection";
+import { PresentationHistory } from "./components/PresentationHistory";
 
 export default function Home() {
   const [title, setTitle] = useState("");
@@ -21,6 +21,7 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState("black");
   const [presentations, setPresentations] = useState<Presentation[]>([]);
+  const [slideCount, setSlideCount] = useState(10); // Default to 10 slides
 
   const handleFileUpload = async (file: File) => {
     try {
@@ -79,6 +80,7 @@ export default function Home() {
           transition: transition,
           useAI: inputMode === "audio" ? true : useAI,
           type: inputMode,
+          slideCount: slideCount,
         }),
       });
 
@@ -150,10 +152,8 @@ export default function Home() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-foreground">PresAI</h1>
+          <h1 className="text-4xl font-bold text-foreground">Generate Presentations with AI</h1>
         </div>
-
-        <InputModeToggle inputMode={inputMode} setInputMode={setInputMode} />
 
         <TitleInput title={title} setTitle={setTitle} />
         <SettingsBar 
@@ -161,6 +161,13 @@ export default function Home() {
           setUseAI={setUseAI}
           transition={transition}
           setTransition={setTransition}
+          slideCount={slideCount}
+          setSlideCount={setSlideCount}
+        />
+        <InputModeToggle 
+          inputMode={inputMode} 
+          setInputMode={setInputMode}
+          useAI={useAI}
         />
 
         <div className="bg-card rounded-lg shadow-lg p-6 border border-border">

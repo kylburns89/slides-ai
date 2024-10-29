@@ -76,7 +76,6 @@ export function generateRevealHTML({ title, slides, theme = 'white', transition 
         `).join('')}
       </div>
     </div>
-    <button class="editor-toggle" onclick="toggleEditor()">Edit Slides</button>
     <div class="editor-container">
       <div id="editor" style="width: 100%; height: 100%;"></div>
     </div>
