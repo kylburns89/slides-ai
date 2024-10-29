@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 
 interface GenerateRequest {
   content: string;
   type: "text" | "audio";
   slideCount: number;
+  apiKey: string;
 }
 
 interface GenerateResponse {
@@ -38,33 +38,42 @@ Example slide format:
 
 export async function POST(req: NextRequest) {
   try {
-    if (!process.env.CLAUDE_API_KEY) {
-      throw new Error("Claude API key not configured");
-    }
-
-    const anthropic = new Anthropic({
-      apiKey: process.env.CLAUDE_API_KEY,
-    });
-
     const data: GenerateRequest = await req.json();
-    const { content, type, slideCount = 10 } = data;
+    const { content, type, slideCount = 10, apiKey } = data;
+
+    if (!apiKey) {
+      throw new Error("API key not provided");
+    }
 
     const userPrompt = type === "audio" 
       ? `Convert this transcribed speech into exactly ${slideCount} HTML presentation slides: ${content}`
       : `Convert this text into exactly ${slideCount} HTML presentation slides: ${content}`;
 
-    const message = await anthropic.messages.create({
-      model: "claude-3-opus-20240229",
-      max_tokens: 4096,
-      system: getSystemPrompt(slideCount),
-      messages: [
-        {
-          role: "user",
-          content: userPrompt,
-        },
-      ],
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
+        model: "claude-3-opus-20240229",
+        max_tokens: 4096,
+        system: getSystemPrompt(slideCount),
+        messages: [
+          {
+            role: "user",
+            content: userPrompt,
+          },
+        ],
+      }),
     });
 
+    if (!response.ok) {
+      throw new Error("API request failed");
+    }
+
+    const message = await response.json();
     const generatedContent = message.content[0]?.type === 'text' 
       ? message.content[0].text 
       : null;

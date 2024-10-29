@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { Presentation, InputMode } from "../../types";
+import { Presentation, InputMode } from "../types";
 import { TitleInput } from "./components/TitleInput";
 import { SettingsBar } from "./components/SettingsBar";
 import { InputModeToggle } from "./components/InputModeToggle";
@@ -10,6 +10,7 @@ import { TextInput } from "./components/TextInput";
 import AudioInput from "./components/AudioInput";
 import { ThemeSelection } from "./components/ThemeSelection";
 import { PresentationHistory } from "./components/PresentationHistory";
+import { useAPIKeys } from "@/hooks/useAPIKeys";
 
 export default function Home() {
   const [title, setTitle] = useState("");
@@ -22,6 +23,7 @@ export default function Home() {
   const [selectedTemplate, setSelectedTemplate] = useState("black");
   const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [slideCount, setSlideCount] = useState(10); // Default to 10 slides
+  const { claude } = useAPIKeys();
 
   const handleFileUpload = async (file: File) => {
     try {
@@ -56,6 +58,11 @@ export default function Home() {
       return;
     }
 
+    if (!claude) {
+      toast.error("Please configure your Claude API key in settings");
+      return;
+    }
+
     // Get content based on input mode and AI setting
     const presentationContent = inputMode === "text" 
       ? (useAI ? prompt : content)
@@ -81,6 +88,7 @@ export default function Home() {
           useAI: inputMode === "audio" ? true : useAI,
           type: inputMode,
           slideCount: slideCount,
+          apiKey: claude
         }),
       });
 

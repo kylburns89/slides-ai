@@ -25,7 +25,8 @@
     "react-dropzone": "^14.2.10",
     "react-hot-toast": "^2.4.1",
     "replicate": "^1.0.1",
-    "reveal.js": "^5.1.0"
+    "reveal.js": "^5.1.0",
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",

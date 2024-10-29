@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateRevealHTML } from "@/app/templates/reveal";
+import { generateRevealHTML } from "../../templates/reveal";
 
 interface GenerateResponse {
   content: string;
@@ -13,6 +13,9 @@ interface PresentationRequest {
   title?: string;
   transition?: string;
   useAI?: boolean;
+  type?: string;
+  slideCount?: number;
+  apiKey?: string;
 }
 
 interface PresentationResponse {
@@ -24,6 +27,7 @@ interface PresentationResponse {
   transition: string;
   success: boolean;
   error?: string;
+  slides?: string[];
 }
 
 export async function POST(req: NextRequest) {
@@ -34,7 +38,10 @@ export async function POST(req: NextRequest) {
       template = 'white', 
       title = "AI Generated Presentation",
       transition = 'slide',
-      useAI = false 
+      useAI = false,
+      type = 'text',
+      slideCount = 10,
+      apiKey
     } = data;
 
     let finalContent = content;
@@ -48,7 +55,9 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           content,
-          type: "text",
+          type,
+          slideCount,
+          apiKey
         }),
       });
 
@@ -87,6 +96,7 @@ export async function POST(req: NextRequest) {
       title,
       transition,
       success: true,
+      slides,
     };
 
     return NextResponse.json(result);

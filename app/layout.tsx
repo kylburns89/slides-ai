@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { Providers } from "./providers";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { APISettings } from "./components/APISettings";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,6 +24,7 @@ export default function RootLayout({
         <Providers>
           <main className="min-h-screen bg-background">
             {children}
+            <APISettings />
             <ThemeToggle />
             <Toaster 
               position="bottom-right"
