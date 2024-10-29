@@ -1,27 +1,25 @@
 # SlidesAI - AI-Powered Presentation Generator
 
-Generate Google Slides presentations automatically from text or audio input using AI. This application allows users to either type their content or upload audio files to create professional presentations.
+Generate beautiful presentations automatically from text or audio input using AI. This application allows users to either type their content or upload audio files to create professional presentations with various themes and styles.
 
 ## Features
 
 - Text-to-presentation conversion
 - Audio-to-presentation conversion
-- Google Slides integration
-- Multiple presentation templates
-- Responsive design
-- Google authentication
-- Real-time progress updates
+- Multiple presentation themes (12+ built-in themes)
+- Theme customization options
+- OpenAI integration for content generation
 - Audio file upload with drag-and-drop support
+- Presentation history tracking
+- Real-time progress updates
+- Responsive design
+- Dark/Light mode support
 
 ## Prerequisites
 
 - Node.js 18+ and npm
-- Google Cloud Platform account
-- Google OAuth 2.0 credentials
-- Google Cloud Service Account with access to:
-  - Google Slides API
-  - Google Drive API
-  - Cloud Speech-to-Text API
+- OpenAI API key
+- Environment variables configuration
 
 ## Setup
 
@@ -36,53 +34,45 @@ cd slides-ai
 npm install
 ```
 
-3. Set up Google Cloud Platform:
-   - Create a new project in Google Cloud Console
-   - Enable the following APIs:
-     - Google Slides API
-     - Google Drive API
-     - Cloud Speech-to-Text API
-   - Create OAuth 2.0 credentials
-   - Create a service account and download the credentials
-
-4. Configure environment variables:
+3. Configure environment variables:
    - Copy `.env.example` to `.env.local`
    - Fill in the required environment variables:
      ```
-     GOOGLE_CLIENT_ID=your_oauth_client_id
-     GOOGLE_CLIENT_SECRET=your_oauth_client_secret
-     GOOGLE_CLIENT_EMAIL=your_service_account_email
-     GOOGLE_PRIVATE_KEY=your_service_account_private_key
+     OPENAI_API_KEY=your_openai_api_key
      NEXTAUTH_URL=http://localhost:3000
      NEXTAUTH_SECRET=your_generated_secret
      ```
 
-5. Run the development server:
+4. Run the development server:
 ```bash
 npm run dev
 ```
 
-6. Open [http://localhost:3000](http://localhost:3000) in your browser.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Usage
 
-1. Sign in with your Google account
-2. Choose between text or audio input
-3. Enter your content or upload an audio file
-4. Select a presentation template
-5. Click "Generate Presentation"
-6. View your generated presentation in Google Slides
+1. Choose between text or audio input mode
+2. Enter your content or upload an audio file
+3. Configure API settings if needed
+4. Select a presentation theme
+5. Add a title for your presentation
+6. Click "Generate Presentation"
+7. View your generated presentation in the built-in viewer
+8. Access your presentation history anytime
 
 ## Technical Stack
 
-- Next.js 14
+- Next.js 14 (App Router)
 - React 18
 - TypeScript
 - Tailwind CSS
-- NextAuth.js
-- Google Cloud APIs
+- Prisma
+- OpenAI API
+- Reveal.js
 - React Dropzone
 - Lucide Icons
+- Geist Font
 
 ## Project Structure
 
@@ -90,17 +80,34 @@ npm run dev
 slides-ai/
 ├── app/
 │   ├── api/
-│   │   ├── auth/
 │   │   ├── audio/
+│   │   ├── config/
+│   │   ├── generate/
 │   │   └── presentations/
+│   ├── components/
+│   │   ├── APISettings.tsx
+│   │   ├── AudioInput.tsx
+│   │   ├── TextInput.tsx
+│   │   ├── ThemeSelection.tsx
+│   │   ├── ThemeToggle.tsx
+│   │   └── ...
+│   ├── constants/
+│   ├── fonts/
+│   ├── presentation/
+│   ├── templates/
 │   ├── layout.tsx
 │   ├── page.tsx
 │   └── providers.tsx
 ├── hooks/
-│   └── useFileUpload.ts
+│   ├── useAPIKeys.ts
+│   ├── useFileUpload.ts
+│   └── useTheme.tsx
+├── prisma/
+│   └── schema.prisma
+├── public/
+│   └── themes/
 ├── types/
 │   └── index.ts
-├── .env.example
 └── README.md
 ```
 
