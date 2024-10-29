@@ -2,16 +2,22 @@
 
 import { AlertCircle, Loader2, Mic } from "lucide-react";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { API_PROVIDERS, WHISPER_MODELS } from "@/app/constants";
+import { APIProvider } from "@/types";
+import { useState } from "react";
 
 interface AudioInputProps {
   content: string;
   isGenerating: boolean;
   onGenerate: () => void;
   title: string;
-  handleFileUpload: (file: File) => Promise<void>;
+  handleFileUpload: (file: File, transcription: string) => Promise<void>;
 }
 
-export function AudioInput({ content, isGenerating, onGenerate, title, handleFileUpload }: AudioInputProps) {
+export default function AudioInput({ content, isGenerating, onGenerate, title, handleFileUpload }: AudioInputProps) {
+  const [provider, setProvider] = useState<APIProvider>("groq");
+  const [model, setModel] = useState("whisper-large-v3-turbo");
+
   const { 
     getRootProps, 
     getInputProps, 
@@ -22,9 +28,32 @@ export function AudioInput({ content, isGenerating, onGenerate, title, handleFil
     status,
     error 
   } = useFileUpload({
-    maxSize: 10 * 1024 * 1024, // 10MB
-    acceptedTypes: ['audio/mpeg', 'audio/wav', 'audio/m4a'],
-    onUpload: handleFileUpload
+    maxSize: 25 * 1024 * 1024, // 25MB
+    acceptedTypes: ['audio/mpeg', 'audio/wav', 'audio/m4a', 'audio/webm', 'video/mp4'],
+    onUpload: async (file: File) => {
+      const formData = new FormData();
+      formData.append("audio", file);
+      formData.append("config", JSON.stringify({
+        provider,
+        model,
+        temperature: 0
+      }));
+
+      // First get transcription from audio endpoint
+      const response = await fetch("/api/audio", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to transcribe audio");
+      }
+
+      // Pass both file and transcription to parent handler
+      await handleFileUpload(file, data.transcription);
+    }
   });
 
   const getUploadStatusText = () => {
@@ -35,8 +64,47 @@ export function AudioInput({ content, isGenerating, onGenerate, title, handleFil
     return "Drag and drop an audio file here, or click to select";
   };
 
+  const models = provider === API_PROVIDERS.GROQ ? WHISPER_MODELS.GROQ : WHISPER_MODELS.OPENAI;
+
   return (
     <div className="space-y-4">
+      <div className="flex flex-col space-y-2">
+        <label className="text-sm font-medium">API Provider</label>
+        <select
+          value={provider}
+          onChange={(e) => {
+            const newProvider = e.target.value as APIProvider;
+            setProvider(newProvider);
+            setModel(
+              newProvider === API_PROVIDERS.GROQ 
+                ? 'whisper-large-v3-turbo' 
+                : 'whisper-1'
+            );
+          }}
+          className="w-full px-3 py-2 bg-background border rounded-lg"
+        >
+          <option value={API_PROVIDERS.GROQ}>Groq (Faster)</option>
+          <option value={API_PROVIDERS.OPENAI}>OpenAI</option>
+        </select>
+      </div>
+
+      {provider === API_PROVIDERS.GROQ && (
+        <div className="flex flex-col space-y-2">
+          <label className="text-sm font-medium">Model</label>
+          <select
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            className="w-full px-3 py-2 bg-background border rounded-lg"
+          >
+            {Object.entries(models).map(([id, info]) => (
+              <option key={id} value={id}>
+                {info.name} - {info.description}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer ${
@@ -70,16 +138,18 @@ export function AudioInput({ content, isGenerating, onGenerate, title, handleFil
             {getUploadStatusText()}
           </div>
           <div className="text-sm text-muted-foreground">
-            Supports MP3, WAV, M4A (max 10MB)
+            Supports MP3, WAV, M4A, WEBM, MP4 (max 25MB)
           </div>
         </div>
       </div>
+
       {content && (
         <div className="mt-4">
           <h3 className="text-lg font-semibold mb-2 text-foreground">Transcription:</h3>
           <div className="p-4 bg-muted rounded-lg font-mono text-foreground">{content}</div>
         </div>
       )}
+
       <button
         className="w-full py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         onClick={onGenerate}

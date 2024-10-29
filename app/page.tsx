@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { Presentation, InputMode } from "../types";
-import { TitleInput } from "./components/TitleInput";
-import { SettingsBar } from "./components/SettingsBar";
-import { InputModeToggle } from "./components/InputModeToggle";
-import { TextInput } from "./components/TextInput";
-import { AudioInput } from "./components/AudioInput";
-import { ThemeSelection } from "./components/ThemeSelection";
-import { PresentationHistory } from "./components/PresentationHistory";
+import { Presentation, InputMode } from "@/types";
+import { TitleInput } from "@/app/components/TitleInput";
+import { SettingsBar } from "@/app/components/SettingsBar";
+import { InputModeToggle } from "@/app/components/InputModeToggle";
+import { TextInput } from "@/app/components/TextInput";
+import AudioInput from "@/app/components/AudioInput";
+import { ThemeSelection } from "@/app/components/ThemeSelection";
+import { PresentationHistory } from "@/app/components/PresentationHistory";
 
 export default function Home() {
   const [title, setTitle] = useState("");
@@ -42,8 +42,6 @@ export default function Home() {
       }
 
       setContent(data.transcription);
-      // When using audio input, we don't want to use AI processing
-      setUseAI(false);
       toast.success('Audio transcribed successfully!');
     } catch (error) {
       console.error('Audio processing error:', error);
@@ -57,9 +55,12 @@ export default function Home() {
       return;
     }
 
-    // Use content directly when in audio mode, otherwise respect useAI setting
-    const presentationContent = inputMode === "audio" ? content : (useAI ? prompt : content);
-    if (!presentationContent.trim()) {
+    // Get content based on input mode and AI setting
+    const presentationContent = inputMode === "text" 
+      ? (useAI ? prompt : content)
+      : content;
+
+    if (!presentationContent?.trim()) {
       toast.error("Please enter some content for your presentation");
       return;
     }
@@ -76,7 +77,8 @@ export default function Home() {
           template: selectedTemplate,
           title: title,
           transition: transition,
-          useAI: inputMode === "audio" ? false : useAI,
+          useAI: inputMode === "audio" ? true : useAI,
+          type: inputMode,
         }),
       });
 
@@ -96,6 +98,8 @@ export default function Home() {
         theme: data.theme,
         timestamp: new Date().toISOString(),
         html: data.html,
+        slides: data.slides || [],
+        createdAt: new Date(),
       }, ...prev]);
 
       toast.success('Presentation generated successfully!');
@@ -146,8 +150,10 @@ export default function Home() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-foreground">Generate Presentations with AI</h1>
+          <h1 className="text-4xl font-bold text-foreground">PresAI</h1>
         </div>
+
+        <InputModeToggle inputMode={inputMode} setInputMode={setInputMode} />
 
         <TitleInput title={title} setTitle={setTitle} />
         <SettingsBar 
@@ -156,7 +162,6 @@ export default function Home() {
           transition={transition}
           setTransition={setTransition}
         />
-        <InputModeToggle inputMode={inputMode} setInputMode={setInputMode} />
 
         <div className="bg-card rounded-lg shadow-lg p-6 border border-border">
           {inputMode === "text" ? (

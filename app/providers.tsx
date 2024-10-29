@@ -1,12 +1,16 @@
-"use client";
-
-import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "../hooks/useTheme";
+import { ReactNode } from "react";
+import { Toaster } from "react-hot-toast";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+interface ProvidersProps {
+  children: ReactNode;
+}
+
+export function Providers({ children }: ProvidersProps) {
   return (
-    <SessionProvider>
-      <ThemeProvider>{children}</ThemeProvider>
-    </SessionProvider>
+    <ThemeProvider>
+      {children}
+      <Toaster position="bottom-right" />
+    </ThemeProvider>
   );
 }

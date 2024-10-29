@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { API_PROVIDERS } from "@/app/constants";
+import type { AudioTranscriptionConfig } from "@/types";
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error("Missing OPENAI_API_KEY environment variable");
@@ -9,10 +11,22 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Initialize Groq client if API key is available
+let groq: any;
+if (process.env.GROQ_API_KEY) {
+  const { Groq } = require("groq-sdk");
+  groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY,
+    baseURL: "https://api.groq.com/openai/v1"
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const audioFile = formData.get("audio") as File;
+    const configStr = formData.get("config") as string | null;
+    const config: AudioTranscriptionConfig | null = configStr ? JSON.parse(configStr) : null;
 
     if (!audioFile) {
       console.error("No audio file in request");
@@ -29,45 +43,47 @@ export async function POST(req: NextRequest) {
     });
 
     try {
-      // Convert File to Blob for OpenAI API
+      // Convert File to appropriate format
       const bytes = await audioFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      const blob = new Blob([buffer], { type: audioFile.type });
+      
+      let transcription: string;
 
-      // Create a file object that OpenAI's API expects
-      const file = new File([blob], audioFile.name, { type: audioFile.type });
+      if (config?.provider === API_PROVIDERS.GROQ && groq) {
+        // Create temporary file for Groq API
+        const tempFilePath = `/tmp/${audioFile.name}`;
+        require('fs').writeFileSync(tempFilePath, buffer);
 
-      // Transcribe the audio
-      const transcription = await openai.audio.transcriptions.create({
-        file: file,
-        model: "whisper-1",
-        response_format: "text",
-      });
+        const result = await groq.audio.transcriptions.create({
+          file: require('fs').createReadStream(tempFilePath),
+          model: config.model || 'whisper-large-v3-turbo',
+          language: config.language,
+          prompt: config.prompt,
+          temperature: config.temperature,
+          response_format: 'text'
+        });
+
+        // Clean up temp file
+        require('fs').unlinkSync(tempFilePath);
+        transcription = result.text;
+      } else {
+        // Default to OpenAI
+        const blob = new Blob([buffer], { type: audioFile.type });
+        const file = new File([blob], audioFile.name, { type: audioFile.type });
+
+        transcription = await openai.audio.transcriptions.create({
+          file,
+          model: "whisper-1",
+          response_format: "text",
+        });
+      }
 
       console.log("Successfully transcribed audio:", transcription);
 
-      // Generate content using Claude
-      const generateResponse = await fetch(new URL("/api/generate", req.url).toString(), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content: transcription,
-          type: "audio",
-        }),
-      });
-
-      if (!generateResponse.ok) {
-        throw new Error("Failed to generate presentation content");
-      }
-
-      const { content: generatedContent } = await generateResponse.json();
-
-      // Return success response with the generated content
+      // Return just the transcription
       return NextResponse.json({
         success: true,
-        transcription: generatedContent
+        transcription
       });
 
     } catch (transcriptionError) {
