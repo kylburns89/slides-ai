@@ -17,11 +17,13 @@
     "lucide-react": "^0.453.0",
     "next": "15.0.1",
     "next-auth": "^4.24.10",
+    "openai": "^4.68.4",
     "prisma": "^5.21.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-dropzone": "^14.2.10",
     "react-hot-toast": "^2.4.1",
+    "replicate": "^1.0.1",
     "reveal.js": "^5.1.0"
   },
   "devDependencies": {

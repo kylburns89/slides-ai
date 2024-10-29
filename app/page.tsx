@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { Presentation, InputMode } from "@/types";
+import { Presentation, InputMode } from "../types";
 import { TitleInput } from "./components/TitleInput";
 import { SettingsBar } from "./components/SettingsBar";
 import { InputModeToggle } from "./components/InputModeToggle";
@@ -42,6 +42,8 @@ export default function Home() {
       }
 
       setContent(data.transcription);
+      // When using audio input, we don't want to use AI processing
+      setUseAI(false);
       toast.success('Audio transcribed successfully!');
     } catch (error) {
       console.error('Audio processing error:', error);
@@ -55,7 +57,8 @@ export default function Home() {
       return;
     }
 
-    const presentationContent = useAI ? prompt : content;
+    // Use content directly when in audio mode, otherwise respect useAI setting
+    const presentationContent = inputMode === "audio" ? content : (useAI ? prompt : content);
     if (!presentationContent.trim()) {
       toast.error("Please enter some content for your presentation");
       return;
@@ -73,7 +76,7 @@ export default function Home() {
           template: selectedTemplate,
           title: title,
           transition: transition,
-          useAI: useAI,
+          useAI: inputMode === "audio" ? false : useAI,
         }),
       });
 
