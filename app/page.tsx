@@ -10,7 +10,7 @@ import { TextInput } from "./components/TextInput";
 import AudioInput from "./components/AudioInput";
 import { ThemeSelection } from "./components/ThemeSelection";
 import { PresentationHistory } from "./components/PresentationHistory";
-import { useAPIKeys } from "@/hooks/useAPIKeys";
+import { useAPIKeys } from "../hooks/useAPIKeys";
 
 export default function Home() {
   const [title, setTitle] = useState("");
@@ -23,7 +23,7 @@ export default function Home() {
   const [selectedTemplate, setSelectedTemplate] = useState("black");
   const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [slideCount, setSlideCount] = useState(10); // Default to 10 slides
-  const { claude } = useAPIKeys();
+  const apiKeys = useAPIKeys();
 
   const handleFileUpload = async (file: File) => {
     try {
@@ -36,7 +36,8 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to process audio');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to process audio');
       }
 
       const data = await response.json();
@@ -58,8 +59,9 @@ export default function Home() {
       return;
     }
 
-    if (!claude) {
-      toast.error("Please configure your Claude API key in settings");
+    const claudeKey = apiKeys.getClaudeKey();
+    if (!claudeKey) {
+      toast.error("Please configure your Claude API key in settings or add it to environment variables");
       return;
     }
 
@@ -75,6 +77,7 @@ export default function Home() {
 
     setIsGenerating(true);
     try {
+      console.log("Sending request to presentations endpoint...");
       const response = await fetch('/api/presentations', {
         method: 'POST',
         headers: {
@@ -88,16 +91,14 @@ export default function Home() {
           useAI: inputMode === "audio" ? true : useAI,
           type: inputMode,
           slideCount: slideCount,
-          apiKey: claude
+          apiKey: claudeKey
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate presentation');
-      }
-
       const data = await response.json();
-      if (!data.success) {
+      
+      if (!response.ok || !data.success) {
+        console.error("Presentation generation failed:", data);
         throw new Error(data.error || 'Failed to generate presentation');
       }
 

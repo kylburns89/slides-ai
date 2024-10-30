@@ -1,27 +1,59 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Settings } from 'lucide-react';
 import { Fragment } from 'react';
-import { useAPIKeys } from '@/hooks/useAPIKeys';
+import { useAPIKeys } from '../../hooks/useAPIKeys';
 
 export function APISettings() {
   const [isOpen, setIsOpen] = useState(false);
-  const { groq, claude, openai, setGroqKey, setClaudeKey, setOpenAIKey } = useAPIKeys();
+  const apiKeys = useAPIKeys();
   const [keys, setKeys] = useState({
-    groq,
-    claude,
-    openai
+    groq: apiKeys.groq,
+    claude: apiKeys.claude,
+    openai: apiKeys.openai
   });
 
-  const handleSave = () => {
-    // Update global state
-    if (keys.groq) setGroqKey(keys.groq);
-    if (keys.claude) setClaudeKey(keys.claude);
-    if (keys.openai) setOpenAIKey(keys.openai);
+  const envKeys = {
+    groq: process.env.NEXT_PUBLIC_GROQ_API_KEY,
+    claude: process.env.NEXT_PUBLIC_CLAUDE_API_KEY,
+    openai: process.env.NEXT_PUBLIC_OPENAI_API_KEY
+  };
 
+  const handleSave = () => {
+    if (keys.groq) apiKeys.setGroqKey(keys.groq);
+    if (keys.claude) apiKeys.setClaudeKey(keys.claude);
+    if (keys.openai) apiKeys.setOpenAIKey(keys.openai);
     setIsOpen(false);
+  };
+
+  const renderInput = (
+    name: 'groq' | 'claude' | 'openai',
+    label: string
+  ) => {
+    const envKey = envKeys[name];
+    
+    return (
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-1">
+          {label}
+        </label>
+        {envKey ? (
+          <div className="w-full p-2 rounded-md border border-input bg-background/50 text-foreground/70">
+            Using environment variable
+          </div>
+        ) : (
+          <input
+            type="password"
+            value={keys[name]}
+            onChange={(e) => setKeys({ ...keys, [name]: e.target.value })}
+            className="w-full p-2 rounded-md border border-input bg-background text-foreground"
+            placeholder={`Enter ${label}`}
+          />
+        )}
+      </div>
+    );
   };
 
   return (
@@ -64,45 +96,16 @@ export function APISettings() {
                     API Settings
                   </Dialog.Title>
 
+                  {(!envKeys.groq && !envKeys.claude && !envKeys.openai) && (
+                    <div className="mb-4 p-3 rounded-md bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 dark:text-yellow-400">
+                      No environment variables detected. Please enter your API keys below.
+                    </div>
+                  )}
+
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-1">
-                        Groq API Key
-                      </label>
-                      <input
-                        type="password"
-                        value={keys.groq}
-                        onChange={(e) => setKeys({ ...keys, groq: e.target.value })}
-                        className="w-full p-2 rounded-md border border-input bg-background text-foreground"
-                        placeholder="Enter Groq API key"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-1">
-                        Claude API Key
-                      </label>
-                      <input
-                        type="password"
-                        value={keys.claude}
-                        onChange={(e) => setKeys({ ...keys, claude: e.target.value })}
-                        className="w-full p-2 rounded-md border border-input bg-background text-foreground"
-                        placeholder="Enter Claude API key"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-1">
-                        OpenAI API Key
-                      </label>
-                      <input
-                        type="password"
-                        value={keys.openai}
-                        onChange={(e) => setKeys({ ...keys, openai: e.target.value })}
-                        className="w-full p-2 rounded-md border border-input bg-background text-foreground"
-                        placeholder="Enter OpenAI API key"
-                      />
-                    </div>
+                    {renderInput('groq', 'Groq API Key')}
+                    {renderInput('claude', 'Claude API Key')}
+                    {renderInput('openai', 'OpenAI API Key')}
                   </div>
 
                   <div className="mt-6 flex justify-end space-x-3">

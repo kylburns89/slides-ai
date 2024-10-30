@@ -32,6 +32,7 @@ interface PresentationResponse {
 
 export async function POST(req: NextRequest) {
   try {
+    console.log("Starting presentation generation...");
     const data: PresentationRequest = await req.json();
     const { 
       content, 
@@ -48,47 +49,43 @@ export async function POST(req: NextRequest) {
 
     // Generate content using Claude if useAI is true
     if (useAI) {
-      console.log("Starting content generation process...");
-      
-      // Construct absolute URL for generate endpoint
-      const baseUrl = process.env.VERCEL_URL 
-        ? `https://${process.env.VERCEL_URL}` 
-        : process.env.NEXT_PUBLIC_BASE_URL || req.url;
-      const generateUrl = new URL("/api/generate", baseUrl).toString();
-      
-      console.log("Sending request to generate endpoint...");
-      const generateResponse = await fetch(generateUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content,
-          type,
-          slideCount,
-          apiKey
-        }),
-      });
-
-      if (!generateResponse.ok) {
-        const errorText = await generateResponse.text();
-        console.error("Generate endpoint error:", {
-          status: generateResponse.status,
-          statusText: generateResponse.statusText,
-          body: errorText
+      console.log("AI generation requested, preparing to call generate endpoint...");
+      try {
+        const generateResponse = await fetch(new URL("/api/generate", req.url).toString(), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            content,
+            type,
+            slideCount,
+            apiKey
+          }),
         });
-        throw new Error(`Failed to generate content: ${generateResponse.status} ${generateResponse.statusText}`);
-      }
 
-      console.log("Parsing generate endpoint response...");
-      const generateData: GenerateResponse = await generateResponse.json();
-      if (!generateData.success || !generateData.content) {
-        console.error("Invalid generate endpoint response:", generateData);
-        throw new Error(generateData.error || "Failed to generate content");
-      }
+        const responseText = await generateResponse.text();
+        console.log("Generate endpoint response status:", generateResponse.status);
+        console.log("Generate endpoint response body:", responseText);
 
-      finalContent = generateData.content;
-      console.log("Content generation successful");
+        if (!generateResponse.ok) {
+          throw new Error(`Generate endpoint error: ${generateResponse.status} ${generateResponse.statusText}\n${responseText}`);
+        }
+
+        const generateData: GenerateResponse = JSON.parse(responseText);
+        if (!generateData.success || !generateData.content) {
+          console.error("Invalid generate endpoint response:", generateData);
+          throw new Error(generateData.error || "Failed to generate content");
+        }
+
+        finalContent = generateData.content;
+        console.log("Content generation successful");
+      } catch (generateError: unknown) {
+        console.error("Content generation error:", generateError);
+        throw new Error(
+          `Failed to generate content: ${generateError instanceof Error ? generateError.message : 'Unknown error'}`
+        );
+      }
     }
 
     // Split content into slides
@@ -96,6 +93,10 @@ export async function POST(req: NextRequest) {
     const slides = finalContent
       .split(/\n\n+/)
       .filter(section => section.trim().length > 0);
+
+    if (slides.length === 0) {
+      throw new Error("No valid slides found in content");
+    }
 
     // Generate reveal.js HTML
     console.log("Generating reveal.js HTML...");
