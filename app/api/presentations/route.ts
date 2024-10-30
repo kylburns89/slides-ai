@@ -45,7 +45,14 @@ export async function POST(req: NextRequest) {
     if (useAI) {
       console.log("AI generation requested, preparing to call generate endpoint...");
       try {
-        const generateUrl = new URL("/api/generate", req.url).toString();
+        // Get the base URL from the request
+        const protocol = process.env.VERCEL_URL ? 'https' : 'http';
+        const host = process.env.VERCEL_URL || req.headers.get('host');
+        if (!host) {
+          throw new Error('Unable to determine host');
+        }
+        
+        const generateUrl = `${protocol}://${host}/api/generate`;
         console.log("Generate endpoint URL:", generateUrl);
 
         const generateResponse = await fetch(generateUrl, {
@@ -61,16 +68,14 @@ export async function POST(req: NextRequest) {
           }),
         });
 
-        let generateData;
-        const responseText = await generateResponse.text();
-        console.log("Generate endpoint raw response:", responseText);
-
-        try {
-          generateData = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error("Failed to parse generate endpoint response:", parseError);
-          throw new Error(`Invalid JSON response from generate endpoint: ${responseText.slice(0, 200)}...`);
+        // Check for non-JSON responses first
+        const contentType = generateResponse.headers.get('content-type');
+        if (!contentType?.includes('application/json')) {
+          console.error('Non-JSON response received:', await generateResponse.text());
+          throw new Error('Invalid response format from generate endpoint - expected JSON');
         }
+
+        const generateData = await generateResponse.json();
 
         if (!generateResponse.ok || !generateData.success) {
           console.error("Generate endpoint error:", generateData);
