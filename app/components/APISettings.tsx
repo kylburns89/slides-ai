@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Settings } from 'lucide-react';
 import { Fragment } from 'react';
@@ -15,7 +15,7 @@ export function APISettings() {
     openai: apiKeys.openai
   });
 
-  // Use the new hook to check for environment variables
+  // Use the hook to check for environment variables
   useCheckEnvironmentKeys();
 
   const handleSave = () => {

@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateRevealHTML } from "../../templates/reveal";
 
-interface GenerateResponse {
-  content: string;
-  success: boolean;
-  error?: string;
-}
-
 interface PresentationRequest {
   content: string;
   template?: string;
