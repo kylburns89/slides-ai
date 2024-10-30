@@ -1,5 +1,20 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import { JWT } from "next-auth/jwt";
+import { Session } from "next-auth";
+
+interface ExtendedToken extends JWT {
+  accessToken?: string;
+}
+
+interface ExtendedSession extends Session {
+  user: {
+    accessToken?: string;
+    email?: string;
+    image?: string;
+    name?: string;
+  };
+}
 
 const handler = NextAuth({
   providers: [
@@ -14,18 +29,16 @@ const handler = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account }): Promise<ExtendedToken> {
       if (account) {
         token.accessToken = account.access_token;
       }
       return token;
     },
-    async session({ session, token }) {
-      if (session.user) {
-        // @ts-ignore
-        session.user.accessToken = token.accessToken;
-      }
-      return session;
+    async session({ session, token }): Promise<ExtendedSession> {
+      // @ts-expect-error Token contains additional properties that aren't typed
+      session.user.accessToken = token.accessToken;
+      return session as ExtendedSession;
     },
   },
   pages: {

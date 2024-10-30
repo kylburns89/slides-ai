@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import { API_PROVIDERS } from "@/app/constants";
-import type { AudioTranscriptionConfig } from "@/types";
+import { API_PROVIDERS } from "@/app/constants/index";
+import type { AudioTranscriptionConfig } from "@/types/index";
+import { Groq } from "groq-sdk";
+import { writeFileSync, createReadStream, unlinkSync } from 'fs';
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("Missing OPENAI_API_KEY environment variable");
-}
-
+// Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || ''
 });
 
 // Initialize Groq client if API key is available
-let groq: any;
+let groq: Groq | null = null;
 if (process.env.GROQ_API_KEY) {
-  const { Groq } = require("groq-sdk");
   groq = new Groq({
     apiKey: process.env.GROQ_API_KEY,
     baseURL: "https://api.groq.com/openai/v1"
@@ -36,6 +34,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check for API key before proceeding
+    if (!process.env.OPENAI_API_KEY && !process.env.GROQ_API_KEY) {
+      return NextResponse.json(
+        { success: false, error: "No API key configured" },
+        { status: 401 }
+      );
+    }
+
     console.log("Received audio file:", {
       type: audioFile.type,
       size: audioFile.size,
@@ -52,10 +58,10 @@ export async function POST(req: NextRequest) {
       if (config?.provider === API_PROVIDERS.GROQ && groq) {
         // Create temporary file for Groq API
         const tempFilePath = `/tmp/${audioFile.name}`;
-        require('fs').writeFileSync(tempFilePath, buffer);
+        writeFileSync(tempFilePath, buffer);
 
         const result = await groq.audio.transcriptions.create({
-          file: require('fs').createReadStream(tempFilePath),
+          file: createReadStream(tempFilePath),
           model: config.model || 'whisper-large-v3-turbo',
           language: config.language,
           prompt: config.prompt,
@@ -64,7 +70,7 @@ export async function POST(req: NextRequest) {
         });
 
         // Clean up temp file
-        require('fs').unlinkSync(tempFilePath);
+        unlinkSync(tempFilePath);
         transcription = result.text;
       } else {
         // Default to OpenAI

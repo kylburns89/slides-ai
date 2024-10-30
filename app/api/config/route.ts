@@ -1,25 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 
-declare global {
-  var runtimeConfig: {
-    CLAUDE_API_KEY?: string;
-    GROQ_API_KEY?: string;
-    OPENAI_API_KEY?: string;
-  };
+interface RuntimeConfig {
+  CLAUDE_API_KEY?: string;
+  GROQ_API_KEY?: string;
+  OPENAI_API_KEY?: string;
 }
 
-// Initialize global runtime config if it doesn't exist
-globalThis.runtimeConfig = globalThis.runtimeConfig || {};
+interface ConfigRequestBody {
+  groq?: string;
+  claude?: string;
+  openai?: string;
+}
+
+// Create a global store without modifying globalThis
+const store: { config: RuntimeConfig } = {
+  config: {
+    CLAUDE_API_KEY: undefined,
+    GROQ_API_KEY: undefined,
+    OPENAI_API_KEY: undefined
+  }
+};
 
 export async function POST(req: NextRequest) {
   try {
-    const { groq, claude, openai } = await req.json();
+    const body = await req.json() as ConfigRequestBody;
+    const { groq, claude, openai } = body;
 
     // Update runtime config
-    globalThis.runtimeConfig = {
-      CLAUDE_API_KEY: claude || globalThis.runtimeConfig.CLAUDE_API_KEY,
-      GROQ_API_KEY: groq || globalThis.runtimeConfig.GROQ_API_KEY,
-      OPENAI_API_KEY: openai || globalThis.runtimeConfig.OPENAI_API_KEY,
+    store.config = {
+      CLAUDE_API_KEY: claude || store.config.CLAUDE_API_KEY,
+      GROQ_API_KEY: groq || store.config.GROQ_API_KEY,
+      OPENAI_API_KEY: openai || store.config.OPENAI_API_KEY,
     };
 
     return NextResponse.json({ success: true });
