@@ -59,7 +59,15 @@ export default function Home() {
       return;
     }
 
-    const claudeKey = apiKeys.getClaudeKey();
+    let claudeKey;
+    try {
+      claudeKey = await apiKeys.getClaudeKey();
+    } catch (error) {
+      console.error('Failed to get Claude API key:', error);
+      toast.error("Failed to access Claude API key");
+      return;
+    }
+
     if (!claudeKey) {
       toast.error("Please configure your Claude API key in settings or add it to environment variables");
       return;

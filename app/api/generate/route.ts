@@ -80,20 +80,26 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify(requestBody),
       });
 
+      let responseData;
       const responseText = await response.text();
-      console.log("Claude API response status:", response.status);
-      console.log("Claude API response headers:", Object.fromEntries(response.headers.entries()));
-      console.log("Claude API response body:", responseText);
+      console.log("Claude API raw response:", responseText);
 
-      if (!response.ok) {
-        throw new Error(`Claude API error: ${response.status} ${response.statusText}\n${responseText}`);
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Failed to parse Claude API response:", parseError);
+        throw new Error(`Invalid JSON response from Claude API: ${responseText.slice(0, 200)}...`);
       }
 
-      const message = JSON.parse(responseText);
-      const generatedContent = message.content?.[0]?.text;
+      if (!response.ok) {
+        console.error("Claude API error response:", responseData);
+        throw new Error(`Claude API error: ${response.status} ${response.statusText}\n${JSON.stringify(responseData)}`);
+      }
+
+      const generatedContent = responseData.content?.[0]?.text;
 
       if (!generatedContent) {
-        console.error("Invalid Claude API response structure:", message);
+        console.error("Invalid Claude API response structure:", responseData);
         throw new Error("Invalid response format from Claude API");
       }
 

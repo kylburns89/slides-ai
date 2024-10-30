@@ -51,7 +51,10 @@ export async function POST(req: NextRequest) {
     if (useAI) {
       console.log("AI generation requested, preparing to call generate endpoint...");
       try {
-        const generateResponse = await fetch(new URL("/api/generate", req.url).toString(), {
+        const generateUrl = new URL("/api/generate", req.url).toString();
+        console.log("Generate endpoint URL:", generateUrl);
+
+        const generateResponse = await fetch(generateUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -64,18 +67,25 @@ export async function POST(req: NextRequest) {
           }),
         });
 
+        let generateData;
         const responseText = await generateResponse.text();
-        console.log("Generate endpoint response status:", generateResponse.status);
-        console.log("Generate endpoint response body:", responseText);
+        console.log("Generate endpoint raw response:", responseText);
 
-        if (!generateResponse.ok) {
-          throw new Error(`Generate endpoint error: ${generateResponse.status} ${generateResponse.statusText}\n${responseText}`);
+        try {
+          generateData = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error("Failed to parse generate endpoint response:", parseError);
+          throw new Error(`Invalid JSON response from generate endpoint: ${responseText.slice(0, 200)}...`);
         }
 
-        const generateData: GenerateResponse = JSON.parse(responseText);
-        if (!generateData.success || !generateData.content) {
+        if (!generateResponse.ok || !generateData.success) {
+          console.error("Generate endpoint error:", generateData);
+          throw new Error(generateData.error || `Generate endpoint error: ${generateResponse.status} ${generateResponse.statusText}`);
+        }
+
+        if (!generateData.content) {
           console.error("Invalid generate endpoint response:", generateData);
-          throw new Error(generateData.error || "Failed to generate content");
+          throw new Error("No content received from generate endpoint");
         }
 
         finalContent = generateData.content;
