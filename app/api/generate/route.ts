@@ -42,13 +42,27 @@ export async function POST(req: NextRequest) {
     const { content, type, slideCount = 10, apiKey } = data;
 
     if (!apiKey) {
+      console.error("API key missing");
       throw new Error("API key not provided");
     }
 
+    console.log("Starting Claude API request...");
     const userPrompt = type === "audio" 
       ? `Convert this transcribed speech into exactly ${slideCount} HTML presentation slides: ${content}`
       : `Convert this text into exactly ${slideCount} HTML presentation slides: ${content}`;
 
+    const requestBody = {
+      model: "claude-3-opus-20240229",
+      max_tokens: 4096,
+      messages: [
+        {
+          role: "user",
+          content: userPrompt,
+        },
+      ],
+    };
+
+    console.log("Sending request to Claude API...");
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -56,42 +70,50 @@ export async function POST(req: NextRequest) {
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01"
       },
-      body: JSON.stringify({
-        model: "claude-3-opus-20240229",
-        max_tokens: 4096,
-        system: getSystemPrompt(slideCount),
-        messages: [
-          {
-            role: "user",
-            content: userPrompt,
-          },
-        ],
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
-      throw new Error("API request failed");
+      const errorText = await response.text();
+      console.error("Claude API error response:", {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
 
+    console.log("Parsing Claude API response...");
     const message = await response.json();
-    const generatedContent = message.content[0]?.type === 'text' 
-      ? message.content[0].text 
-      : null;
+    const generatedContent = message.content?.[0]?.text;
 
     if (!generatedContent) {
-      throw new Error("Invalid response from Claude API");
+      console.error("Invalid Claude API response:", message);
+      throw new Error("Invalid response format from Claude API");
     }
 
+    console.log("Successfully generated content");
     const result: GenerateResponse = {
       content: generatedContent,
       success: true,
     };
 
     return NextResponse.json(result);
-  } catch (error) {
-    console.error("Content generation error:", error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error("Detailed generation error:", {
+      name: err?.name || 'Unknown error',
+      message: err?.message || 'No error message available',
+      stack: err?.stack || 'No stack trace available'
+    });
+    
     return NextResponse.json(
-      { success: false, error: "Failed to generate presentation content" },
+      { 
+        success: false, 
+        error: error instanceof Error 
+          ? `Generation failed: ${err.message}` 
+          : "Failed to generate presentation content"
+      },
       { status: 500 }
     );
   }
