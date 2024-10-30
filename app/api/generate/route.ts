@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
         headers: {
           "Content-Type": "application/json",
           "x-api-key": claudeApiKey,
-          "anthropic-version": "2024-01-01"
+          "anthropic-version": "2023-06-01"
         },
         body: JSON.stringify(requestBody),
       });
