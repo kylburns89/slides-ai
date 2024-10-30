@@ -56,6 +56,10 @@ export async function POST(req: NextRequest) {
       max_tokens: 4096,
       messages: [
         {
+          role: "system",
+          content: getSystemPrompt(slideCount)
+        },
+        {
           role: "user",
           content: userPrompt,
         },
