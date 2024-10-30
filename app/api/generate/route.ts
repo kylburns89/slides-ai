@@ -75,24 +75,26 @@ export async function POST(req: NextRequest) {
         headers: {
           "Content-Type": "application/json",
           "x-api-key": claudeApiKey,
-          "anthropic-version": "2023-06-01"
+          "anthropic-version": "2024-01-01"
         },
         body: JSON.stringify(requestBody),
       });
 
-      let responseData;
-      const responseText = await response.text();
-      console.log("Claude API raw response:", responseText);
-
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error("Failed to parse Claude API response:", parseError);
-        throw new Error(`Invalid JSON response from Claude API: ${responseText.slice(0, 200)}...`);
+      // Check content type before attempting to parse
+      const contentType = response.headers.get("content-type");
+      if (!contentType?.includes("application/json")) {
+        const text = await response.text();
+        console.error("Non-JSON response from Claude API:", text);
+        throw new Error("Authentication error or invalid response from Claude API");
       }
+
+      const responseData = await response.json();
 
       if (!response.ok) {
         console.error("Claude API error response:", responseData);
+        if (response.status === 401) {
+          throw new Error("Invalid or expired Claude API key");
+        }
         throw new Error(`Claude API error: ${response.status} ${response.statusText}\n${JSON.stringify(responseData)}`);
       }
 
@@ -112,9 +114,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(result);
     } catch (apiError: unknown) {
       console.error("Claude API request failed:", apiError);
-      throw new Error(
-        `Claude API request failed: ${apiError instanceof Error ? apiError.message : 'Unknown error'}`
-      );
+      
+      // Enhance error message for common issues
+      let errorMessage = "Claude API request failed";
+      if (apiError instanceof Error) {
+        if (apiError.message.includes("Authentication")) {
+          errorMessage = "Invalid or expired Claude API key. Please check your API key in settings.";
+        } else {
+          errorMessage = apiError.message;
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
   } catch (error: unknown) {
     const err = error as Error;
