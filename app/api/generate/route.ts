@@ -98,18 +98,21 @@ export async function POST(req: NextRequest) {
 
     const result = await response.json();
     
-    // Make sure we're returning a properly formatted JSON response
-    return NextResponse.json({
+    const generateResponse: GenerateResponse = {
       content: result.content[0].text,
-      success: true // Add this field
-    });
+      success: true
+    };
+    
+    return NextResponse.json(generateResponse);
 
   } catch (error) {
     console.error("Generate route error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json(
-      { error: "Failed to generate content", details: errorMessage },
-      { status: 500 }
-    );
+    const errorResponse: GenerateResponse = {
+      content: "",
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error"
+    };
+    
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }
