@@ -55,24 +55,45 @@ export async function POST(req: NextRequest) {
         const generateUrl = `${protocol}://${host}/api/generate`;
         console.log("Generate endpoint URL:", generateUrl);
 
+        // Debug logging for API key
+        if (apiKey) {
+          console.log("API Key details:");
+          console.log(`- Length: ${apiKey.length}`);
+          console.log(`- Prefix: ${apiKey.substring(0, 5)}...`);
+          console.log(`- Format valid: ${apiKey.startsWith('sk-')}`);
+        } else {
+          console.log("No API key provided in request");
+        }
+
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json"
+        };
+
+        // Only add API key to headers if it exists and has valid format
+        if (apiKey && apiKey.startsWith('sk-')) {
+          headers["x-api-key"] = apiKey.trim();
+        }
+
         const generateResponse = await fetch(generateUrl, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers,
           body: JSON.stringify({
             content,
             type,
-            slideCount,
-            apiKey
+            slideCount
           }),
         });
+
+        // Log response details
+        console.log("Generate endpoint response status:", generateResponse.status);
+        console.log("Generate endpoint response headers:", Object.fromEntries(generateResponse.headers.entries()));
 
         // Check for non-JSON responses first
         const contentType = generateResponse.headers.get('content-type');
         if (!contentType?.includes('application/json')) {
-          console.error('Non-JSON response received:', await generateResponse.text());
-          throw new Error('Invalid response format from generate endpoint - expected JSON');
+          const responseText = await generateResponse.text();
+          console.error('Non-JSON response received:', responseText);
+          throw new Error(`Invalid response format from generate endpoint - expected JSON. Status: ${generateResponse.status}`);
         }
 
         const generateData = await generateResponse.json();

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import Anthropic from '@anthropic-ai/sdk';
 
 interface GenerateRequest {
   content: string;
@@ -41,22 +42,43 @@ export async function POST(req: NextRequest) {
     console.log("Starting generate route processing...");
     
     const data: GenerateRequest = await req.json();
-    const { content, type, slideCount, apiKey } = data;
+    const { content, type, slideCount } = data;
 
-    // Use environment variable or fallback to provided key
-    const claudeApiKey = process.env.ANTHROPIC_API_KEY || apiKey;
+    // Debug logging for API key sources
+    const headerKey = req.headers.get('x-api-key');
+    const envKey = process.env.ANTHROPIC_API_KEY;
+    const bodyKey = data.apiKey;
+
+    console.log("API Key sources:");
+    console.log("- Header key present:", !!headerKey);
+    console.log("- Environment key present:", !!envKey);
+    console.log("- Request body key present:", !!bodyKey);
+
+    // Get API key from request headers first, then environment, then request body
+    const claudeApiKey = headerKey || envKey || bodyKey;
 
     if (!claudeApiKey) {
-      console.error("No Claude API key available");
+      console.error("No Claude API key available from any source");
       throw new Error("Claude API key not configured");
     }
+
+    // Log key details (safely)
+    const keyLength = claudeApiKey.length;
+    const keyPrefix = claudeApiKey.substring(0, 5);
+    const keySource = headerKey ? 'header' : (envKey ? 'environment' : 'body');
+    console.log(`Using API key from ${keySource}: length=${keyLength}, prefix=${keyPrefix}...`);
 
     console.log("Starting Claude API request...");
     const userPrompt = type === "audio" 
       ? `Convert this transcribed speech into exactly ${slideCount} HTML presentation slides: ${content}`
       : `Convert this text into exactly ${slideCount} HTML presentation slides: ${content}`;
 
-    const requestBody = {
+    const anthropic = new Anthropic({
+      apiKey: claudeApiKey,
+    });
+
+    console.log("Sending request to Claude API...");
+    const response = await anthropic.messages.create({
       model: "claude-3-5-sonnet-20241022",
       max_tokens: 4096,
       system: getSystemPrompt(slideCount),
@@ -66,31 +88,10 @@ export async function POST(req: NextRequest) {
           content: userPrompt,
         },
       ],
-    };
-
-    console.log("Sending request to Claude API...");
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": claudeApiKey,
-        "anthropic-version": "2023-06-01",
-        "x-api-version": "2023-06-01",
-        "Authorization": `Bearer ${claudeApiKey}`
-      },
-      body: JSON.stringify(requestBody)
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error("Claude API error:", errorData);
-      throw new Error(`Claude API error: ${response.status}`);
-    }
-
-    const result = await response.json();
-    
     const generateResponse: GenerateResponse = {
-      content: result.content[0].text,
+      content: response.content[0].type === 'text' ? response.content[0].text : '',
       success: true
     };
     
