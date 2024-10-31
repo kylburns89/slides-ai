@@ -45,22 +45,15 @@ export async function POST(req: NextRequest) {
     if (useAI) {
       console.log("AI generation requested, preparing to call generate endpoint...");
       try {
-        // // Get the base URL from the request
-        // const protocol = process.env.VERCEL_URL ? 'https' : 'http';
-        // const host = process.env.VERCEL_URL || req.headers.get('host');
-        // if (!host) {
-        //   throw new Error('Unable to determine host');
-        // }
+        // Get the base URL from the request
+        const protocol = process.env.VERCEL_URL ? 'https' : 'http';
+        const host = process.env.VERCEL_URL || req.headers.get('host');
+        if (!host) {
+          throw new Error('Unable to determine host');
+        }
         
-        // const generateUrl = `${protocol}://${host}/api/generate`;
-        // console.log("Generate endpoint URL:", generateUrl);
-
-        const baseUrl = process.env.VERCEL_URL 
-        ? `https://${process.env.VERCEL_URL}` 
-        : `http://${req.headers.get('host')}`;
-  
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-       const generateUrl = `${baseUrl}/api/generate`;
+        const generateUrl = `${protocol}://${host}/api/generate`;
+        console.log("Generate endpoint URL:", generateUrl);
 
         const generateResponse = await fetch(generateUrl, {
           method: "POST",
