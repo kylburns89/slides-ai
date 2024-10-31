@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     console.log("Starting generate route processing...");
     
     const data: GenerateRequest = await req.json();
-    const { content, type, slideCount = 10, apiKey } = data;
+    const { content, type, slideCount, apiKey } = data;
 
     // Use environment variable or fallback to provided key
     const claudeApiKey = process.env.CLAUDE_API_KEY || apiKey;
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       : `Convert this text into exactly ${slideCount} HTML presentation slides: ${content}`;
 
     const requestBody = {
-      model: "claude-3-opus-20240229",
+      model: "claude-3-5-sonnet-20241022",
       max_tokens: 4096,
       system: getSystemPrompt(slideCount),
       messages: [
@@ -76,79 +76,39 @@ export async function POST(req: NextRequest) {
     };
 
     console.log("Sending request to Claude API...");
-    try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": claudeApiKey,
-          "anthropic-version": "2023-06-01"
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      // Check content type before attempting to parse
-      const contentType = response.headers.get("content-type");
-      if (!contentType?.includes("application/json")) {
-        const text = await response.text();
-        console.error("Non-JSON response from Claude API:", text);
-        throw new Error("Authentication error or invalid response from Claude API");
-      }
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        console.error("Claude API error response:", responseData);
-        if (response.status === 401) {
-          throw new Error("Invalid or expired Claude API key");
-        }
-        throw new Error(`Claude API error: ${response.status} ${response.statusText}\n${JSON.stringify(responseData)}`);
-      }
-
-      const generatedContent = responseData.content?.[0]?.text;
-
-      if (!generatedContent) {
-        console.error("Invalid Claude API response structure:", responseData);
-        throw new Error("Invalid response format from Claude API");
-      }
-
-      console.log("Successfully generated content");
-      const result: GenerateResponse = {
-        content: generatedContent,
-        success: true,
-      };
-
-      return NextResponse.json(result);
-    } catch (apiError: unknown) {
-      console.error("Claude API request failed:", apiError);
-      
-      // Enhance error message for common issues
-      let errorMessage = "Claude API request failed";
-      if (apiError instanceof Error) {
-        if (apiError.message.includes("Authentication")) {
-          errorMessage = "Invalid or expired Claude API key. Please check your API key in settings.";
-        } else {
-          errorMessage = apiError.message;
-        }
-      }
-      
-      throw new Error(errorMessage);
-    }
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error("Detailed generation error:", {
-      name: err?.name || 'Unknown error',
-      message: err?.message || 'No error message available',
-      stack: err?.stack || 'No stack trace available'
-    });
-    
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error 
-          ? `Generation failed: ${err.message}` 
-          : "Failed to generate presentation content"
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": claudeApiKey,
+        "anthropic-version": "2023-06-01",
+        // Add this required header
+        "x-api-version": "2023-06-01",
+        // Change x-api-key to Authorization
+        "Authorization": `Bearer ${claudeApiKey}`
       },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Claude API error:", errorData);
+      throw new Error(`Claude API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    // Make sure we're returning a properly formatted JSON response
+    return NextResponse.json({
+      content: result.content[0].text,
+      success: true // Add this field
+    });
+
+  } catch (error) {
+    console.error("Generate route error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      { error: "Failed to generate content", details: errorMessage },
       { status: 500 }
     );
   }
