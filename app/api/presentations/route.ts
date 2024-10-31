@@ -36,7 +36,6 @@ export async function POST(req: NextRequest) {
       useAI = false,
       type = 'text',
       slideCount = 10,
-      apiKey
     } = data;
 
     let finalContent = content;
@@ -53,26 +52,11 @@ export async function POST(req: NextRequest) {
         }
         
         const generateUrl = `${protocol}://${host}/api/generate`;
-        console.log("Generate endpoint URL:", generateUrl);
-
-        // Debug logging for API key
-        if (apiKey) {
-          console.log("API Key details:");
-          console.log(`- Length: ${apiKey.length}`);
-          console.log(`- Prefix: ${apiKey.substring(0, 5)}...`);
-          console.log(`- Format valid: ${apiKey.startsWith('sk-')}`);
-        } else {
-          console.log("No API key provided in request");
-        }
+        console.log("Generate endpoint URL:", generateUrl)
 
         const headers: Record<string, string> = {
           "Content-Type": "application/json"
         };
-
-        // Only add API key to headers if it exists and has valid format
-        if (apiKey && apiKey.startsWith('sk-')) {
-          headers["x-api-key"] = apiKey.trim();
-        }
 
         const generateResponse = await fetch(generateUrl, {
           method: "POST",
