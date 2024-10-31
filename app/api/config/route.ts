@@ -14,8 +14,8 @@ export async function POST(req: Request) {
   // If checking for Claude key
   if (key === 'claude') {
     return NextResponse.json({
-      hasKey: !!process.env.CLAUDE_API_KEY,
-      key: process.env.CLAUDE_API_KEY || null
+      hasKey: !!process.env.ANTHROPIC_API_KEY,
+      key: process.env.ANTHROPIC_API_KEY || null
     });
   }
   

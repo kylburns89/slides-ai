@@ -44,19 +44,12 @@ export async function POST(req: NextRequest) {
     const { content, type, slideCount, apiKey } = data;
 
     // Use environment variable or fallback to provided key
-    const claudeApiKey = process.env.CLAUDE_API_KEY || apiKey;
+    const claudeApiKey = process.env.ANTHROPIC_API_KEY || apiKey;
 
     if (!claudeApiKey) {
       console.error("No Claude API key available");
       throw new Error("Claude API key not configured");
     }
-
-    const baseUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : `http://${req.headers.get('host')}`;
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const generateUrl = `${baseUrl}/api/generate`;
 
     console.log("Starting Claude API request...");
     const userPrompt = type === "audio" 
@@ -82,9 +75,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
         "x-api-key": claudeApiKey,
         "anthropic-version": "2023-06-01",
-        // Add this required header
         "x-api-version": "2023-06-01",
-        // Change x-api-key to Authorization
         "Authorization": `Bearer ${claudeApiKey}`
       },
       body: JSON.stringify(requestBody)
