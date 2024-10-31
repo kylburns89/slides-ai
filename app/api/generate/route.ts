@@ -51,6 +51,13 @@ export async function POST(req: NextRequest) {
       throw new Error("Claude API key not configured");
     }
 
+    const baseUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : `http://${req.headers.get('host')}`;
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const generateUrl = `${baseUrl}/api/generate`;
+
     console.log("Starting Claude API request...");
     const userPrompt = type === "audio" 
       ? `Convert this transcribed speech into exactly ${slideCount} HTML presentation slides: ${content}`
