@@ -53,21 +53,28 @@ export async function POST(req: NextRequest) {
     if (useAI) {
       console.log("AI generation requested, preparing to call generate endpoint...");
       try {
-        // Get the base URL from the request
-        const protocol = process.env.VERCEL_URL ? 'https' : 'http';
-        const host = process.env.VERCEL_URL || req.headers.get('host');
+        // Get the absolute URL for the generate endpoint
+        const protocol = req.headers.get('x-forwarded-proto') || 'http';
+        const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
         if (!host) {
           throw new Error('Unable to determine host');
         }
         
         const generateUrl = `${protocol}://${host}/api/generate`;
-        console.log("Generate endpoint URL:", generateUrl)
+        console.log("Generate endpoint URL:", generateUrl);
 
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-          // Forward any API key from the request headers
-          ...(headerApiKey ? { 'x-api-key': headerApiKey } : {})
-        };
+        // Create a new headers object with all relevant headers
+        const headers = new Headers({
+          'Content-Type': 'application/json',
+          'Host': host,
+          'x-api-key': headerApiKey || bodyApiKey || '', // Try both sources
+        });
+
+        // Copy over any other relevant headers from the original request
+        ['x-forwarded-proto', 'x-forwarded-host', 'x-forwarded-for'].forEach(header => {
+          const value = req.headers.get(header);
+          if (value) headers.set(header, value);
+        });
 
         const generateResponse = await fetch(generateUrl, {
           method: "POST",
@@ -76,7 +83,7 @@ export async function POST(req: NextRequest) {
             content,
             type,
             slideCount,
-            apiKey: bodyApiKey // Forward the API key from the request body
+            apiKey: bodyApiKey // Still include in body as fallback
           }),
         });
 

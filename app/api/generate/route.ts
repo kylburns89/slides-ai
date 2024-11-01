@@ -62,9 +62,13 @@ export async function POST(req: NextRequest) {
         content: "",
         success: false,
         error: "Authentication configuration missing"
-      }, { status: 401 });
+      }, { 
+        status: 401,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
     }
-
 
     // Log key details (safely)
     const keyLength = claudeApiKey.length;
@@ -81,50 +85,76 @@ export async function POST(req: NextRequest) {
       apiKey: claudeApiKey,
     });
 
-  try {
-    console.log("Sending request to Claude API...");
-    const response = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 4096,
-      system: getSystemPrompt(slideCount),
-      messages: [
-        {
-          role: "user",
-          content: userPrompt,
-        },
-      ],
-    });
+    try {
+      console.log("Sending request to Claude API...");
+      const response = await anthropic.messages.create({
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 4096,
+        system: getSystemPrompt(slideCount),
+        messages: [
+          {
+            role: "user",
+            content: userPrompt,
+          },
+        ],
+      });
 
-    const generateResponse: GenerateResponse = {
-      content: response.content[0].type === 'text' ? response.content[0].text : '',
-      success: true
-    };
-    
-    return NextResponse.json(generateResponse);
-  } catch (anthropicError) {
-    console.error("Anthropic API error:", anthropicError);
-    
-    // Check for specific Anthropic error types
-    if (anthropicError instanceof Anthropic.APIError) {
-      if (anthropicError.status === 401) {
-        return NextResponse.json({
-          content: "",
-          success: false,
-          error: "Invalid API key or authentication failed"
-        }, { status: 401 });
+      if (!response.content[0] || response.content[0].type !== 'text') {
+        throw new Error("Invalid response format from Claude API");
       }
+
+      const generateResponse: GenerateResponse = {
+        content: response.content[0].text,
+        success: true
+      };
+      
+      return NextResponse.json(generateResponse, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+    } catch (anthropicError) {
+      console.error("Anthropic API error:", anthropicError);
+      
+      // Check for specific Anthropic error types
+      if (anthropicError instanceof Anthropic.APIError) {
+        if (anthropicError.status === 401) {
+          return NextResponse.json({
+            content: "",
+            success: false,
+            error: "Invalid API key or authentication failed"
+          }, { 
+            status: 401,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+        }
+      }
+      
+      // Handle other Anthropic errors
+      return NextResponse.json({
+        content: "",
+        success: false,
+        error: anthropicError instanceof Error ? anthropicError.message : "Unknown Anthropic API error"
+      }, { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
     }
-    
-    throw anthropicError; // Let the outer catch handle other errors
+  } catch (error) {
+    console.error("Generate route error:", error);
+    return NextResponse.json({
+      content: "",
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error"
+    }, { 
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   }
-} catch (error) {
-  console.error("Generate route error:", error);
-  const errorResponse: GenerateResponse = {
-    content: "",
-    success: false,
-    error: error instanceof Error ? error.message : "Unknown error"
-  };
- 
-  return NextResponse.json(errorResponse, { status: 500 });
-}
 }
