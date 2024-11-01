@@ -28,6 +28,15 @@ export async function POST(req: NextRequest) {
   try {
     console.log("Starting presentation generation...");
     const data: PresentationRequest = await req.json();
+
+      // Debug log for API keys (safely)
+      const headerApiKey = req.headers.get('x-api-key');
+      const bodyApiKey = data.apiKey;
+      console.log("API Key present in:", {
+        headers: !!headerApiKey,
+        body: !!bodyApiKey
+      });
+
     const { 
       content, 
       template = 'white', 
@@ -55,7 +64,9 @@ export async function POST(req: NextRequest) {
         console.log("Generate endpoint URL:", generateUrl)
 
         const headers: Record<string, string> = {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          // Forward any API key from the request headers
+          ...(req.headers.get('x-api-key') ? { 'x-api-key': req.headers.get('x-api-key') as string } : {})
         };
 
         const generateResponse = await fetch(generateUrl, {
@@ -82,8 +93,16 @@ export async function POST(req: NextRequest) {
 
         const generateData = await generateResponse.json();
 
+        if (generateResponse.status === 401) {
+          console.error("Authentication failed when calling generate endpoint");
+          throw new Error("Authentication failed - please check your API key");
+        }
+
         if (!generateResponse.ok || !generateData.success) {
           console.error("Generate endpoint error:", generateData);
+          if (generateResponse.status === 401) {
+            throw new Error("Authentication failed - please check your API key");
+          }
           throw new Error(generateData.error || `Generate endpoint error: ${generateResponse.status} ${generateResponse.statusText}`);
         }
 

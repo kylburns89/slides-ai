@@ -56,11 +56,15 @@ export async function POST(req: NextRequest) {
 
     // Get API key from request headers first, then environment, then request body
     const claudeApiKey = headerKey || envKey || bodyKey;
-
     if (!claudeApiKey) {
       console.error("No Claude API key available from any source");
-      throw new Error("Claude API key not configured");
+      return NextResponse.json({
+        content: "",
+        success: false,
+        error: "Authentication configuration missing"
+      }, { status: 401 });
     }
+
 
     // Log key details (safely)
     const keyLength = claudeApiKey.length;
@@ -77,6 +81,7 @@ export async function POST(req: NextRequest) {
       apiKey: claudeApiKey,
     });
 
+  try {
     console.log("Sending request to Claude API...");
     const response = await anthropic.messages.create({
       model: "claude-3-5-sonnet-20241022",
@@ -96,15 +101,30 @@ export async function POST(req: NextRequest) {
     };
     
     return NextResponse.json(generateResponse);
-
-  } catch (error) {
-    console.error("Generate route error:", error);
-    const errorResponse: GenerateResponse = {
-      content: "",
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error"
-    };
+  } catch (anthropicError) {
+    console.error("Anthropic API error:", anthropicError);
     
-    return NextResponse.json(errorResponse, { status: 500 });
+    // Check for specific Anthropic error types
+    if (anthropicError instanceof Anthropic.APIError) {
+      if (anthropicError.status === 401) {
+        return NextResponse.json({
+          content: "",
+          success: false,
+          error: "Invalid API key or authentication failed"
+        }, { status: 401 });
+      }
+    }
+    
+    throw anthropicError; // Let the outer catch handle other errors
   }
+} catch (error) {
+  console.error("Generate route error:", error);
+  const errorResponse: GenerateResponse = {
+    content: "",
+    success: false,
+    error: error instanceof Error ? error.message : "Unknown error"
+  };
+ 
+  return NextResponse.json(errorResponse, { status: 500 });
+}
 }
