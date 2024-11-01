@@ -45,7 +45,6 @@ export async function POST(req: NextRequest) {
       useAI = false,
       type = 'text',
       slideCount = 10,
-      apiKey
     } = data;
 
     let finalContent = content;
