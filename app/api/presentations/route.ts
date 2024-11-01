@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       useAI = false,
       type = 'text',
       slideCount = 10,
+      apiKey
     } = data;
 
     let finalContent = content;
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
           // Forward any API key from the request headers
-          ...(req.headers.get('x-api-key') ? { 'x-api-key': req.headers.get('x-api-key') as string } : {})
+          ...(headerApiKey ? { 'x-api-key': headerApiKey } : {})
         };
 
         const generateResponse = await fetch(generateUrl, {
@@ -75,7 +76,8 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({
             content,
             type,
-            slideCount
+            slideCount,
+            apiKey: bodyApiKey // Forward the API key from the request body
           }),
         });
 
